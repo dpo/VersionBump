@@ -1,6 +1,6 @@
 name = "VersionBump"
 uuid = "b5f46e43-d563-4780-8d12-904fce058ef5"
-version = "0.2.0"
+version = "1.0.0"
 authors = ["Dominique <dominique.orban@gmail.com>"]
 
 [extras]
