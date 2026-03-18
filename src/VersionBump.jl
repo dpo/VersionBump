@@ -1,5 +1,5 @@
 module VersionBump
 
-greet() = print("Hello Sun!")
+greet() = print("Hello Oort Cloud!")
 
 end # module VersionBump
