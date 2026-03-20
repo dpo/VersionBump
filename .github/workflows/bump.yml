@@ -25,11 +25,6 @@ jobs:
             /repos/${{ github.repository }}/collaborators/$COMMENTER/permission \
             --jq '.permission')
 
-          if [[ "$ROLE" != "admin" && "$ROLE" != "maintain" ]]; then
-            echo "Commenter $COMMENTER has role '$ROLE', which is insufficient. Skipping."
-            exit 0
-          fi
-
       - name: Parse version bump command
         # Determine whether a major, minor or patch version bump was requested.
         # Add the vesion part to the environment so other steps can read it.
