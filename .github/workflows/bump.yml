@@ -17,6 +17,7 @@ jobs:
 
     steps:
       - name: Check commenter permissions
+        id: check_perm
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COMMENTER: ${{ github.event.comment.user.login }}
@@ -25,14 +26,17 @@ jobs:
             /repos/${{ github.repository }}/collaborators/$COMMENTER/permission \
             --jq '.permission')
 
+          PERM="yes"
           if [[ "$ROLE" != "admin" && "$ROLE" != "maintain" ]]; then
             echo "Commenter $COMMENTER has role '$ROLE', which is insufficient. Skipping."
-            exit 0
+            PERM="no"
           fi
+          echo "perm=$PERM" >> $GITHUB_OUTPUT
 
       - name: Parse version bump command
         # Determine whether a major, minor or patch version bump was requested.
         # Add the vesion part to the environment so other steps can read it.
+        if: steps.check_perm.outputs.perm == 'yes'
         id: parse
         run: |
           COMMENT="${{ github.event.comment.body }}"
@@ -46,6 +50,7 @@ jobs:
 
       - name: Merge PR via rebase
         # Merge the PR where the comment was posted to prepare for the version bump.
+        if: steps.check_perm.outputs.perm == 'yes'
         uses: actions/github-script@v8
         with:
           script: |
@@ -57,18 +62,21 @@ jobs:
             })
 
       - name: Checkout PR branch
+        if: steps.check_perm.outputs.perm == 'yes'
         uses: actions/checkout@v6
         with:
           ref: ${{ github.event.issue.pull_request.base.ref }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Julia
+        if: steps.check_perm.outputs.perm == 'yes'
         uses: julia-actions/setup-julia@v2
         with:
           version: "1"
 
       - name: Bump version in Project.toml
         # Edit Project.toml to bump the version as requested in the PR comment.
+        if: steps.check_perm.outputs.perm == 'yes'
         id: bump
         run: |
           julia --project=. << 'EOF'
@@ -115,6 +123,7 @@ jobs:
           PART: ${{ steps.parse.outputs.part }}
 
       - name: Commit and push to new branch
+        if: steps.check_perm.outputs.perm == 'yes'
         id: commit
         run: |
           BRANCH="jsobot/bump-version-${{ steps.bump.outputs.new_version }}"
@@ -137,6 +146,7 @@ jobs:
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
 
       - name: Open pull request
+        if: steps.check_perm.outputs.perm == 'yes'
         id: open_pr
         # Label the pull request so CI runs on CirrusCI
         # because PRs created by a bot cannot trigger GitHub Actions.
