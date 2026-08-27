@@ -35,8 +35,10 @@ jobs:
         # Parse optional release notes text from the rest of the comment body.
         # Add parsed values to the environment so other steps can read them.
         id: parse
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
         run: |
-          COMMENT="${{ github.event.comment.body }}"
+          COMMENT="$COMMENT_BODY"
           PART=$(printf '%s\n' "$COMMENT" | head -n1 | grep -ioP '^@jsobot version\s+\K(major|minor|patch)$')
           if [ -z "$PART" ]; then
             echo "Comment did not match expected format '@jsobot version [major|minor|patch]'"
