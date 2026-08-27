@@ -27,7 +27,7 @@ jobs:
           PR=$(gh pr list \
             --repo ${{ github.repository }} \
             --head "$BRANCH" \
-            --json number,title,baseRefName,commits \
+            --json number,title,body,baseRefName,commits \
             --jq '.[] | select(.title | startswith("Bump version to "))')
 
           if [ -z "$PR" ]; then
@@ -38,14 +38,21 @@ jobs:
           PR_NUMBER=$(echo "$PR" | jq -r '.number')
           BASE_REF=$(echo "$PR" | jq -r '.baseRefName')
           TITLE=$(echo "$PR" | jq -r '.title')
+          BODY=$(echo "$PR" | jq -r '.body // ""')
           VERSION=$(echo "$TITLE" | grep -oP 'Bump version to \K.*')
           LATEST_SHA=$(echo "$PR" | jq -r '.commits[-1].oid')
+          RELEASE_NOTES=$(printf '%s\n' "$BODY" | sed -n '/^### Release notes$/,$p' | tail -n +2 | sed '/./,$!d')
 
           echo "pr_number=$PR_NUMBER"   >> $GITHUB_OUTPUT
           echo "base_ref=$BASE_REF"     >> $GITHUB_OUTPUT
           echo "branch=$BRANCH"         >> $GITHUB_OUTPUT
           echo "version=$VERSION"       >> $GITHUB_OUTPUT
           echo "latest_sha=$LATEST_SHA" >> $GITHUB_OUTPUT
+          {
+            echo "release_notes<<EOF"
+            echo "$RELEASE_NOTES"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
 
       - name: Merge version bump PR and delete branch
         if: steps.find_pr.outputs.pr_number != ''
@@ -80,9 +87,15 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SHA: ${{ steps.merge_commit.outputs.sha }}
           VERSION: ${{ steps.find_pr.outputs.version }}
+          RELEASE_NOTES: ${{ steps.find_pr.outputs.release_notes }}
         run: |
+          COMMENT="✅ Version \`$VERSION\` merged automatically by @jsobot after CI passed."
+          if [ -n "$RELEASE_NOTES" ]; then
+            COMMENT="$COMMENT\n\n### Release notes\n$RELEASE_NOTES"
+          fi
+
           gh api \
             --method POST \
             "/repos/${{ github.repository }}/commits/$SHA/comments" \
-            --field body="✅ Version \`$VERSION\` merged automatically by @jsobot after CI passed."
+            --field body="$COMMENT"
             # --field-body="@JuliaRegistrator register"
