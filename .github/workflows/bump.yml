@@ -46,11 +46,15 @@ jobs:
           fi
           PART=$(echo "$PART" | tr '[:upper:]' '[:lower:]')
           RELEASE_NOTES=$(printf '%s\n' "$COMMENT" | tail -n +2 | sed '/./,$!d')
+          NOTES_DELIM="JSOBOT_RELEASE_NOTES_EOF"
+          while printf '%s\n' "$RELEASE_NOTES" | grep -qx "$NOTES_DELIM"; do
+            NOTES_DELIM="${NOTES_DELIM}_X"
+          done
           echo "part=$PART" >> $GITHUB_OUTPUT
           {
-            echo "release_notes<<EOF"
+            echo "release_notes<<$NOTES_DELIM"
             echo "$RELEASE_NOTES"
-            echo "EOF"
+            echo "$NOTES_DELIM"
           } >> $GITHUB_OUTPUT
 
       - name: Merge PR via rebase
