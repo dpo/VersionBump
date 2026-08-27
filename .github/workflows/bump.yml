@@ -6,7 +6,7 @@ on:
 
 jobs:
   bump-version:
-    # Run this Action if a comment of the form "@jsobot version [major|minor|patch]" is posted.
+    # Run this Action if a comment starting with "@jsobot version [major|minor|patch]" is posted.
     if: |
       github.event.issue.pull_request != null &&
       startsWith(github.event.comment.body, '@jsobot version')
@@ -32,17 +32,24 @@ jobs:
 
       - name: Parse version bump command
         # Determine whether a major, minor or patch version bump was requested.
-        # Add the vesion part to the environment so other steps can read it.
+        # Parse optional release notes text from the rest of the comment body.
+        # Add parsed values to the environment so other steps can read them.
         id: parse
         run: |
           COMMENT="${{ github.event.comment.body }}"
-          PART=$(echo "$COMMENT" | grep -ioP '@jsobot version \K(major|minor|patch)')
+          PART=$(printf '%s\n' "$COMMENT" | head -n1 | grep -ioP '^@jsobot version\s+\K(major|minor|patch)$')
           if [ -z "$PART" ]; then
             echo "Comment did not match expected format '@jsobot version [major|minor|patch]'"
             exit 1
           fi
           PART=$(echo "$PART" | tr '[:upper:]' '[:lower:]')
+          RELEASE_NOTES=$(printf '%s\n' "$COMMENT" | tail -n +2 | sed '/./,$!d')
           echo "part=$PART" >> $GITHUB_OUTPUT
+          {
+            echo "release_notes<<EOF"
+            echo "$RELEASE_NOTES"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
 
       - name: Merge PR via rebase
         # Merge the PR where the comment was posted to prepare for the version bump.
@@ -142,16 +149,26 @@ jobs:
         # because PRs created by a bot cannot trigger GitHub Actions.
         # See .cirrusci.yml.
         uses: actions/github-script@v8
+        env:
+          NEW_VERSION: ${{ steps.bump.outputs.new_version }}
+          RELEASE_NOTES: ${{ steps.parse.outputs.release_notes }}
+          BRANCH: ${{ steps.commit.outputs.branch }}
         with:
           github-token: ${{ steps.app_token.outputs.token }}
           script: |
+            const version = process.env.NEW_VERSION
+            const releaseNotes = (process.env.RELEASE_NOTES || '').trim()
+            const body = releaseNotes
+              ? `Automated version bump to \`${version}\`\n\n### Release notes\n${releaseNotes}`
+              : `Automated version bump to \`${version}\``
+
             const pr = await github.rest.pulls.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: `Bump version to ${{ steps.bump.outputs.new_version }}`,
-              head: '${{ steps.commit.outputs.branch }}',
+              title: `Bump version to ${version}`,
+              head: process.env.BRANCH,
               base: 'main',
-              body: `Automated version bump to \`${{ steps.bump.outputs.new_version }}\``
+              body
             })
             // await github.rest.issues.addLabels({
             //   owner: context.repo.owner,
