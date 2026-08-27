@@ -41,7 +41,11 @@ jobs:
           BODY=$(echo "$PR" | jq -r '.body // ""')
           VERSION=$(echo "$TITLE" | grep -oP 'Bump version to \K.*')
           LATEST_SHA=$(echo "$PR" | jq -r '.commits[-1].oid')
-          RELEASE_NOTES=$(printf '%s\n' "$BODY" | sed -n '/^### Release notes$/,$p' | tail -n +2 | sed '/./,$!d')
+          RELEASE_NOTES=$(printf '%s\n' "$BODY" | awk '
+            /^### Release notes$/ { in_notes=1; next }
+            in_notes && /^### / { exit }
+            in_notes { print }
+          ' | sed '/./,$!d')
 
           echo "pr_number=$PR_NUMBER"   >> $GITHUB_OUTPUT
           echo "base_ref=$BASE_REF"     >> $GITHUB_OUTPUT
@@ -91,7 +95,7 @@ jobs:
         run: |
           COMMENT="✅ Version \`$VERSION\` merged automatically by @jsobot after CI passed."
           if [ -n "$RELEASE_NOTES" ]; then
-            COMMENT="$COMMENT\n\n### Release notes\n$RELEASE_NOTES"
+            COMMENT=$(printf '%s\n\n### Release notes\n%s' "$COMMENT" "$RELEASE_NOTES")
           fi
 
           gh api \
