@@ -38,7 +38,7 @@ jobs:
         env:
           COMMENT_BODY: ${{ github.event.comment.body }}
         run: |
-          COMMENT="$COMMENT_BODY"
+          COMMENT=$(printf '%s' "$COMMENT_BODY" | tr -d '\r')
           PART=$(printf '%s\n' "$COMMENT" | head -n1 | grep -ioP '^@jsobot version\s+\K(major|minor|patch)$')
           if [ -z "$PART" ]; then
             echo "Comment did not match expected format '@jsobot version [major|minor|patch]'"
