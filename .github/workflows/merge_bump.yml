@@ -12,7 +12,7 @@ jobs:
     if: |
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.head_branch != github.event.repository.default_branch
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: write
       pull-requests: write
@@ -49,7 +49,7 @@ jobs:
 
             const pull = pulls[0]
             const version = versionMatch[1]
-            if (pull.user.login !== 'jsobot[bot]') {
+            if (pull.user.login !== 'jsoregistrator[bot]') {
               throw new Error(`Unexpected version bump PR author: ${pull.user.login}`)
             }
             if (pull.head.repo?.full_name !== repoName ||
