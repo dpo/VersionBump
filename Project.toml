@@ -1,14 +1,14 @@
+version = "2.1.1"
 name = "VersionBump"
-uuid = "b5f46e43-d563-4780-8d12-904fce058ef5"
-version = "2.1.0"
 authors = ["Dominique <dominique.orban@gmail.com>"]
+uuid = "b5f46e43-d563-4780-8d12-904fce058ef5"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
+[targets]
+test = ["Test"]
+
 [compat]
 julia = "1.10"
 Test = "1.10"
-
-[targets]
-test = ["Test"]
