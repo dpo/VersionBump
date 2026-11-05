@@ -169,7 +169,7 @@ jobs:
           VERSION: ${{ steps.find_pr.outputs.version }}
           RELEASE_NOTES: ${{ steps.find_pr.outputs.release_notes }}
         run: |
-          COMMENT="@JuliaRegistrator register"
+          COMMENT="JustKidding register"
           if [ -n "$RELEASE_NOTES" ]; then
             COMMENT=$(printf '%s\n%s' "$COMMENT" "$RELEASE_NOTES")
           fi
