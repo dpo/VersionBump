@@ -1,4 +1,4 @@
-version = "2.1.1"
+version = "2.2.0"
 name = "VersionBump"
 authors = ["Dominique <dominique.orban@gmail.com>"]
 uuid = "b5f46e43-d563-4780-8d12-904fce058ef5"
